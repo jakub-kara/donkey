@@ -12,8 +12,8 @@ Steps to run:
 The code is compatible with the scikit-learn clustering interface.
 
 **Example:**  
-`from clustering import Donkey  
-data = ...  
-clus = Donkey()  
-clus.fit(data)  
-labels = clus.labels_`  
+`from clustering import Donkey`  
+`data = ...`  
+`clus = Donkey()`  
+`clus.fit(data)`  
+`labels = clus.labels_`  
