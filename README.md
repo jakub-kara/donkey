@@ -37,17 +37,23 @@ clus = Donkey(log=True, name="test")
 ```
 
 **`fit(data, pbc=[], ranges={})`**
-Performs DONKEY clustering on the supplied data
+Performs DONKEY clustering on the supplied data  
 - `data` (np.array): data to be clustered with data.shape == (n_samples, n_features)
 - `pbc` (list[int]): list all the features that are periodic, 0-indexed
 - `ranges` (dict[int, list[float]]): specify the upper and lower bound of a given feature, which will get mapped onto [0, 1]
+Side effects:
+The results will also be saved to `./donkey/<name>.<extensions>`
+- `<name>.lab.npy`: labels saved as a numpy array file; use `np.load("<name>.lab.npy")` to read
+- `<name>.cov.npy`: optimised covariance matrix saved to numpy file
+- `<name>.merge.npy`: merging matrix saved to numpy file
+- `<name>.log`: if `log == True`, prints information
 Usage:
 ```
 # assume feature 0 is angle-like -> periodic with range [-pi, pi]
 clus.fit(data, pbc=[0], ranges={0: [-np.pi, np.pi]}
 ```
 
-**`plot_clusters(*args, **kwargs)`**
+**`plot_clusters(*args, **kwargs)`**  
 Plots clusters obtained from fitting using provided arguments  
 Args TBD
 Usage
