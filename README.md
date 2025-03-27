@@ -30,7 +30,8 @@ Creates a `Donkey` instance
 - `gamma` (float): outlier threshold as a fraction of cluster centre height  
 - `abramson` (bool): adapt covariances locally  
 - `log` (bool): produce a log file  
-- `name` (str): root of all created files, <name>.<extensions>  
+- `name` (str): root of all created files, <name>.<extensions>
+
 Usage:
 ```
 clus = Donkey(log=True, name="test")
