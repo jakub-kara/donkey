@@ -23,7 +23,8 @@ The interface is fully compatible with scikit-learn
 
 ### Methods
 
-**`__init__(alpha=1, beta=1, gamma=1, abramson=True, log=False, name="clusters")`**
+**`__init__(alpha=1, beta=1, gamma=1, abramson=True, log=False, name="clusters")`**  
+
 Creates a `Donkey` instance  
 - `alpha` (float): widening factor for gaussians g(x) = exp(-1/2 alpha x^T C^-1 x)  
 - `beta` (float): gives merging threshold as exp(-beta)  
@@ -31,22 +32,26 @@ Creates a `Donkey` instance
 - `abramson` (bool): adapt covariances locally  
 - `log` (bool): produce a log file  
 - `name` (str): root of all created files, <name>.<extensions>
+
 Usage:
 ```
 clus = Donkey(log=True, name="test")
 ```
 
-**`fit(data, pbc=[], ranges={})`**
+**`fit(data, pbc=[], ranges={})`**  
+
 Performs DONKEY clustering on the supplied data  
 - `data` (np.array): data to be clustered with data.shape == (n_samples, n_features)
 - `pbc` (list[int]): list all the features that are periodic, 0-indexed
-- `ranges` (dict[int, list[float]]): specify the upper and lower bound of a given feature, which will get mapped onto [0, 1]  
+- `ranges` (dict[int, list[float]]): specify the upper and lower bound of a given feature, which will get mapped onto [0, 1]
+
 Side effects:
 The results will also be saved to `./donkey/<name>.<extensions>`
 - `<name>.lab.npy`: labels saved as a numpy array file; use `np.load("<name>.lab.npy")` to read
 - `<name>.cov.npy`: optimised covariance matrix saved to numpy file
 - `<name>.merge.npy`: merging matrix saved to numpy file
 - `<name>.log`: if `log == True`, prints information
+
 Usage:
 ```
 # assume feature 0 is angle-like -> periodic with range [-pi, pi]
@@ -55,7 +60,8 @@ clus.fit(data, pbc=[0], ranges={0: [-np.pi, np.pi]}
 
 **`plot_clusters(*args, **kwargs)`**  
 Plots clusters obtained from fitting using provided arguments  
-Args TBD
+Args TBD  
+
 Usage
 ```
 clus.plot_clusters()
