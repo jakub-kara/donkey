@@ -55,7 +55,7 @@ The results will also be saved to `./donkey/<name>.<extensions>`
 Usage:
 ```
 # assume feature 0 is angle-like -> periodic with range [-pi, pi]
-clus.fit(data, pbc=[0], ranges={0: [-np.pi, np.pi]}
+clus.fit(data, pbc=[0], ranges={0: [-np.pi, np.pi]})
 ```
 
 **`plot_clusters(*args, **kwargs)`**  
