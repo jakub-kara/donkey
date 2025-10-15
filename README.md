@@ -15,7 +15,7 @@ The code is compatible with the scikit-learn clustering interface.
 
 ### Description:
 `Donkey` class is used to perform calculations and store data throughout the algorithm  
-The interface is fully compatible with scikit-learn
+The interface is compatible with scikit-learn
 
 ### Attributes
 **`labels_`**
@@ -23,7 +23,7 @@ The interface is fully compatible with scikit-learn
 
 ### Methods
 
-**`__init__(alpha=1, beta=1, gamma=1, abramson=True, log=False, name="clusters")`**  
+**`__init__(alpha=1, beta=1, gamma=0, abramson=True, log=False, name="clusters")`**  
 
 Creates a `Donkey` instance  
 - `alpha` (float): widening factor for gaussians g(x) = exp(-1/2 alpha x^T C^-1 x)  
@@ -60,7 +60,7 @@ clus.fit(data, pbc=[0], ranges={0: [-np.pi, np.pi]})
 
 **`plot_clusters(*args, **kwargs)`**  
 Plots clusters obtained from fitting using provided arguments  
-Args TBD  
+Args TBC
 
 Usage
 ```
