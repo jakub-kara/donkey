@@ -5,7 +5,6 @@ import time, os
 import matplotlib.pyplot as plt
 import matplotlib.colors as clr
 from itertools import islice, cycle
-from scipy.sparse.csgraph import minimum_spanning_tree
 
 from density import clus
 
@@ -63,7 +62,7 @@ class Donkey:
         if not os.path.exists("donkey"):
             os.mkdir("donkey")
         os.chdir("donkey")
-        if self.do_log:
+        if self.log:
             with open(f"{self.name}.log", "w"): pass
 
         self.set_data(data)
@@ -95,6 +94,10 @@ class Donkey:
         return im
 
     def minmax_data(self):
+        """
+        Normalises the data to be fitted
+        """
+
         for j in range(self.n_features):
             if j in self.feature_ranges.keys():
                 self.data[j,:] -= self.feature_ranges[j][0]
@@ -116,6 +119,10 @@ class Donkey:
         self.data = self.trans @ self.data
 
     def positions_to_labels(self):
+        """
+        Converts local maxima positions to cluster labels
+        """
+
         uniques = np.unique(self.cluster_positions.T, axis=0)
         self.n_clus = np.shape(uniques)[0]
         for i in range(self.n_traj):
@@ -124,10 +131,14 @@ class Donkey:
                     self.labels_[i] = j
 
     def reduce_cluster_labels(self):
+        """
+        Removes any "holes" in cluster labels, so that all labels in [0, n_clus-1] are used
+        """
         for i in range(len(np.unique(self.labels_[self.labels_ >= 0]))):
             while(i not in self.labels_):
                 self.labels_[self.labels_ > i] -= 1
         self.n_clus = int(i+1)
+
 
     @staticmethod
     def align_labels(labels, ref):
@@ -160,8 +171,46 @@ class Donkey:
             labels[labels == old] = new + n
         labels[labels >= 0] -= n
 
+    def plot_marginal(self, axis, limits=None, n_pts=201):
+        if limits is None:
+            mn = np.min(self.data[axis])
+            mx = np.max(self.data[axis])
+            limits = [mn - (mx-mn)*0.1, mx + (mx-mn)*0.1]
+
+        x = np.linspace(*limits, n_pts)
+        prob = np.zeros((self.n_clus, n_pts))
+
+        for k in range(self.n_traj):
+            a = self.icov[axis, axis, k]
+            temp = [i for i in range(self.n_features) if i != axis]
+            if len(temp) == 1:
+                b = self.icov[[temp], axis, k]
+                B = self.icov[[temp], [temp], k]
+            else:
+                b = self.icov[temp, axis, k]
+                B = self.icov[temp][:,temp,k]
+            lam, vec = np.linalg.eig(B)
+            prod = 0
+            for i in range(self.n_features-1):
+                for j in range(self.n_features-1):
+                    prod += (b[j]*vec[j,i])**2/lam[i]
+
+            log = -1/2*np.log(self.det[k]) - 1/2*(x-self.data[axis,k])**2*(a-prod) - 1/2*np.sum(np.log(lam))
+            prob[self.labels_[k]] += np.exp(log)
+        for i in range(self.n_clus):
+            plt.plot(x, prob[i])
+        plt.show()
+
     # TODO: clean up!
     def plot_clusters(self, ax=None, axes=[0,1], data=None, pts=True, grid=False, axis_labels=None, axis_limits=None, maxima=False, saddles=False, density=False, title=None, ticks=False, angle=None):
+        """
+        Plots clusters if the number of features is 2 or 3
+
+        Args:
+            plot_grid (bool, optional): Requests background density grid generation (2D only). Defaults to False.
+            grid_res (int, optional): Resolution of background density grid. Defaults to 300.
+            axis_labels (np.ndarray, optional): Labels of axes. Defaults to None.
+        """
         if data is None:
             data = self.data
 
@@ -220,6 +269,7 @@ class Donkey:
             Z = np.zeros_like(X)
             for i in range(X.shape[0]):
                 for j in range(X.shape[1]):
+                    # Z[i,j] = np.log(-self.get_density(np.array([X[i,j], Y[i,j]])))
                     Z[i,j] = -self.get_density(np.array([X[i,j], Y[i,j]]))
             ax.plot_surface(X, Y, Z, alpha=0.3)
 
@@ -237,8 +287,11 @@ class Donkey:
                 for i in range(X.shape[0]):
                     for j in range(X.shape[1]):
                         Z[i,j] = np.log(-self.get_density(np.array([X[i,j], Y[i,j]])))
+                        # Z[i,j] = -self.get_density(np.array([X[i,j], Y[i,j]]))
                 plt.contourf(X, Y, Z, 15, alpha=.75, cmap=plt.cm.Greys)
+                # plt.contour(X, Y, Z, 15, colors='black')
 
+            # plt.gca().set_box_aspect(1)
             if not ticks:
                 plt.xticks([])
                 plt.yticks([])
@@ -274,15 +327,6 @@ class Donkey:
                         self.labels_[i], (self.minima[0,i], self.minima[1,i])
                     )
 
-            if saddles:
-                plt.scatter(
-                    self.saddles[axes[0]].flatten(),
-                    self.saddles[axes[1]].flatten(),
-                    s = 15,
-                    color = "k",
-                    marker = "+"
-                )
-
         elif len(axes) == 3:
             if ax is None:
                 fig = plt.figure(figsize=(5,5))
@@ -312,6 +356,7 @@ class Donkey:
                     self.saddles[axes[0]].flatten(),
                     self.saddles[axes[1]].flatten(),
                     self.saddles[axes[2]].flatten(),
+                    [-self.get_density(x) for x in self.saddles.reshape((self.n_features, -1)).T],
                     s = 15,
                     color = "k",
                     marker = "+"
@@ -344,7 +389,50 @@ class Donkey:
         else:
             print("Please use 2 or 3 axes")
             return
+
         return ax
+
+        if save:
+            if len(axes) == 2 or axis_labels is None:
+                plt.savefig(save, dpi=600, bbox_inches="tight", transparent=True)
+            else:
+                plt.subplots_adjust(left=0)
+                plt.savefig(save, dpi=600)
+            plt.gca().clear()
+        else:
+            plt.show()
+
+    def compare_pdfs(self, fun):
+        n = 200
+        x = np.linspace(2*min(self.data[0]), 2*max(self.data[0]), n)
+        y = np.linspace(2*min(self.data[1]), 2*max(self.data[1]), n)
+        dx = x[1] - x[0]
+        dy = y[1] - y[0]
+        X,Y = np.meshgrid(x, y)
+        est = np.zeros_like(X)
+        ground = np.zeros_like(X)
+        for i in range(n):
+            print(i)
+            for j in range(n):
+                est[i,j] = self.get_density(np.array([X[i,j], Y[i,j]]))
+                ground[i,j] = fun(np.array([X[i,j], Y[i,j]]))
+        tot = np.sum(est)*dx*dy
+        est /= tot
+        temp = np.abs(np.log(est) - np.log(ground))
+        mn = min(np.min(est), np.min(ground), np.min(temp))
+        mx = max(np.max(est), np.max(ground), np.max(temp))
+
+
+        fig, axs = plt.subplots(1,3, squeeze=True)
+        est[0,0] = mn
+        est[-1,-1] = mx
+        axs[0].pcolormesh(np.log(est))
+        ground[0,0] = mn
+        ground[-1,-1] = mx
+        axs[1].pcolormesh(np.log(ground))
+        temp[0,0] = mn
+        temp[-1,-1] = mx
+        axs[2].pcolormesh(temp)
 
     def optimise_cov(self):
         self.cov = np.zeros((self.n_features, self.n_features, self.n_traj), dtype=float, order="F")
@@ -365,6 +453,7 @@ class Donkey:
 
     def mlloof(self):
         thresh = 1e-8
+        it = 0
         cov = np.eye(self.n_features, order="F")
 
         self.log("1. Covariance Optimisation", f"Convergence threshold: {thresh}", "", "Initial guess", f"{cov}")
@@ -469,6 +558,11 @@ class Donkey:
                         centroid[i] = np.average(self.data[i, closest_pts], weights=prod[closest_pts])
 
                 pos, en, nit = self.get_saddle_smith(centroid, trust, thresh, pts)
+                im = self.image(pos, self.data)
+                temp = clus.get_density_by_clusters(im, self.icov, self.det, self.labels_, self.alpha, self.n_clus)
+                csum = temp[c1] + temp[c2]
+                if csum == 0 or temp[c1] / csum < 0.01 or temp[c2] / csum < 0.01:
+                    en = 0
 
                 if np.abs(en) > 0:
                     self.log(f"Saddle search between clusters {c1:2} and {c2:2} succeeded in {nit} steps")
@@ -477,13 +571,6 @@ class Donkey:
 
                 if en == 0:
                     pos, en, nit = self.get_saddle_smith(self.data[:,desc[0]], trust, thresh, pts)
-
-                im = self.image(pos, self.data)
-                temp = clus.get_density_by_clusters(im, self.icov, self.det, self.labels_, self.alpha, self.n_clus)
-                csum = temp[c1] + temp[c2]
-                if csum == 0 or temp[c1] / csum < 0.01 or temp[c2] / csum < 0.01:
-                    en = 0
-
                 if en == 0:
                     continue
                 if pos is not None:
@@ -500,7 +587,7 @@ class Donkey:
 
         labels = np.arange(self.n_clus)
         while True:
-            to_merge = None
+            to_merge = [-1,-1]
             metric = 0
             for c1 in range(self.n_clus):
                 for c2 in range(c1):
@@ -510,7 +597,7 @@ class Donkey:
                         metric = temp
                         to_merge = [c1, c2]
 
-            if to_merge is None: break
+            if -1 in to_merge: break
 
             newmin = min(self.merge[to_merge[0], to_merge[0]], self.merge[to_merge[1], to_merge[1]])
             l1 = np.argwhere(labels == labels[to_merge[0]]).flatten()
@@ -532,7 +619,7 @@ class Donkey:
         t2 = time.time()
         self.log(f"Total time taken for cluster merging: {(t2-t1):.4} s", "")
 
-    # TODO: translate to FORTRAN
+
     def get_saddle_smith(self, x0, trust, thresh, pts):
         def gprime(x):
             grad = self.get_gradient(x)
@@ -599,7 +686,6 @@ class Donkey:
 
         print("Finding maxima")
         self.find_maxima()
-        # breakpoint()
 
         print("Merging clusters")
         self.merge_clusters()
