@@ -46,9 +46,6 @@ subroutine mlloof(cov, nit, pts, pbc, thresh, nd, nt)
                 out(:,:,j,i) = outer_product(disp, disp, nd)
                 out(:,:,i,j) = out(:,:,j,i)
                 r2 = sum(disp * matmul(icov, disp))
-                ! call dsymv('U', nd, 1d0, icov, nd, disp, 1, 0d0, temp, 1)
-                ! r2 = sum(disp * temp)
-                ! r2 = ddot(nd, disp, 1, temp, 1)
                 gs(j,i) = dexp(-0.5d0 * r2)
                 gs(i,j) = gs(j,i)
             end do
@@ -72,7 +69,6 @@ subroutine mlloof(cov, nit, pts, pbc, thresh, nd, nt)
         tot = tot / nt
         err = sum(abs(cov - tot))
         cov = tot
-        ! print*, cov
         if (err < thresh) exit
     end do
 end subroutine mlloof
@@ -129,7 +125,6 @@ subroutine mlloos(cov, nit, pts, pbc, thresh, nd, nt)
         tot = tot / nt / nd
         err = abs(var - tot)
         var = tot
-        print*, var
         if (err < thresh) then
             do i = 1, nd
                 cov(i,i) = var
@@ -372,33 +367,5 @@ subroutine newton_raphson(xout, nit, xin, pts, icovs, dets, pbc, coeff, trust, t
     end  do
 
 end subroutine newton_raphson
-
-! subroutine eigtest()
-!     external :: dsyev
-!     integer*4 nd, info, lwork
-!     real*8 mat(3,3), lam(3), vec(3,3)
-!     real*8, allocatable :: work(:)
-
-!     nd = 3
-!     lwork = 3*nd - 1
-!     allocate(work(lwork))
-
-!     mat(:,1) = [1,2,3]
-!     mat(:,2) = [2,4,2]
-!     mat(:,3) = [3,2,0]
-!     vec(:,:) = mat
-
-!     call dsyev('V', 'U', nd, vec, nd, lam, work, lwork, info)
-!     print*, vec(1,:)
-!     print*, matmul(mat, vec(1,:))
-!     print*, lam(1) * vec(1,:)
-!     print*, ''
-!     print*, vec(:,1)
-!     print*, matmul(mat, vec(:,1))
-!     print*, lam(1) * vec(:,1)
-
-
-
-! end subroutine eigtest
 
 end module clus
